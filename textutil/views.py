@@ -1,73 +1,63 @@
 from django.shortcuts import render
-from django.http import HttpResponse
-# Create your views here.
-
 
 def index(request):
-    return render(request,'index.html')
+    return render(request, 'index.html')
+
 
 def analyze(request):
-    # get text
-    djtext = request.POST.get('text','default')
-    removepunc=request.POST.get('removepunc','off')
-    fullcaps=request.POST.get('fullcaps','off')
-    newlineremover =request.POST.get('newlineremover','off')
-    extraspaceremover =request.POST.get('extraspaceremover','off')
-    charcount =request.POST.get('charcount','off')
-    
+    djtext = request.POST.get('text', '')
 
+    removepunc = request.POST.get('removepunc', 'off')
+    fullcaps = request.POST.get('fullcaps', 'off')
+    newlineremover = request.POST.get('newlineremover', 'off')
+    extraspaceremover = request.POST.get('extraspaceremover', 'off')
+    charcount = request.POST.get('charcount', 'off')
+
+    # ❌ If no option is selected
+    if (removepunc == "off" and fullcaps == "off" and
+        newlineremover == "off" and extraspaceremover == "off" and
+        charcount == "off"):
+        return render(request, 'error.html', {
+            'error': 'Please select at least one option!'
+        })
+
+    analyzed = djtext
+    purpose_list = []
+
+    # ✅ Remove punctuation
     if removepunc == "on":
-        punctuations ='''.,;:?!()[]{}<>/\|@#$%^&*_~=+-`'"'''
-        analyzed = ""
-        for char in djtext:
-            if char not in punctuations:
-                analyzed = analyzed + char
-        params={'purpose':'Removed punctuations','analyzed_text': analyzed}
-        djtext =analyzed
+        punctuations = '''.,;:?!()[]{}<>/\|@#$%^&*_~=+-`'"'''
+        analyzed = "".join(char for char in analyzed if char not in punctuations)
+        purpose_list.append("Removed Punctuation")
 
-        # return render(request,'analyze.html',params)
-    
-    if(fullcaps=="on"):
-        analyzed=""
-        for char in djtext:
-            analyzed=analyzed + char.upper()
+    # ✅ Uppercase
+    if fullcaps == "on":
+        analyzed = analyzed.upper()
+        purpose_list.append("Converted to Uppercase")
 
-        params={'purpose':' changed to UPPERCASE','analyzed_text': analyzed}
-        djtext =analyzed
-        # return render(request,'analyze.html',params)
+    # ✅ Remove extra spaces (safe)
+    if extraspaceremover == "on":
+        analyzed = " ".join(analyzed.split())
+        purpose_list.append("Removed Extra Spaces")
 
-    if(extraspaceremover=="on"):
-        analyzed=""
-        for index, char in enumerate(djtext):
-            if not(djtext[index] == " " and djtext[index + 1] == " "):
-                analyzed=analyzed + char
+    # ✅ Remove new lines
+    if newlineremover == "on":
+        analyzed = analyzed.replace("\n", "").replace("\r", "")
+        purpose_list.append("Removed New Lines")
 
-        params={'purpose':' changed to UPPERCASE','analyzed_text': analyzed}
-        djtext =analyzed
-        # return render(request,'analyze.html',params)
-    
-    if(newlineremover=="on"):
-        analyzed=""
-        for char in djtext:
-            if(char!= "\n") and char!="\r":
-                analyzed=analyzed + char
+    # ✅ Character count
+    if charcount == "on":
+        count = len(analyzed)
+        analyzed = f"Total Characters: {count}\n\n{analyzed}"
+        purpose_list.append("Character Count")
 
-        params={'purpose':' changed to UPPERCASE','analyzed_text': analyzed}
-        djtext =analyzed
-        # return render(request,'analyze.html',params)
-    
-    if(charcount=="on"):
-        analyzed=""
-        analyzed = f"Total number of characters: {len(djtext)}\n"
-        analyzed=analyzed+djtext
+    params = {
+        'purpose': ", ".join(purpose_list),
+        'analyzed_text': analyzed
+    }
 
-        params={'purpose':'character count','analyzed_text': analyzed}
-        
-    if(removepunc != "on" and newlineremover!="on" and extraspaceremover!="on" and fullcaps!="on" and charcount=="on"):
-        return render(request,'error.html')
-    return render(request,'analyze.html',params)
+    return render(request, 'analyze.html', params)
 
 
 def error(request):
-    context = {'error': 'You must enter some text before submitting the form.'}
-    return render(request,'error.html',context)
+    return render(request, 'error.html')
